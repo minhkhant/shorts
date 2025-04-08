@@ -3,7 +3,24 @@ const videoService = require("../services/videoService");
 const { deleteVideo } = require("../utils/fileUtils");
 
 /**
- * Get all videos
+ * Get latest video with pagination
+ */
+const getLatestVideo = async (req, res, next) => {
+  try {
+    const latestVideo = videoService.getLatestVideo();
+
+    if (!latestVideo) {
+      return res.status(404).json({ error: "No videos found" });
+    }
+
+    res.json(latestVideo);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all videos (for admin or other purposes)
  */
 const getAllVideos = async (req, res, next) => {
   try {
@@ -78,6 +95,7 @@ const deleteVideoById = async (req, res, next) => {
 };
 
 module.exports = {
+  getLatestVideo,
   getAllVideos,
   getVideoById,
   streamVideo,

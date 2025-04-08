@@ -5,15 +5,13 @@ const uploadController = require("../controllers/uploadController");
 
 const router = express.Router();
 
-// API Routes
-router.get("/", videoController.getAllVideos);
+// Main API route now returns latest video with pagination
+router.get("/", videoController.getLatestVideo);
+
+// Keep other routes the same
+router.get("/all", videoController.getAllVideos); // Route for listing all videos
 router.get("/:videoId", videoController.getVideoById);
 router.delete("/:videoId", videoController.deleteVideoById);
 router.post("/upload", upload.single("video"), uploadController.uploadVideo);
-
-// Video streaming route - only for the /videos prefix
-if (router.name === "/videos") {
-  router.get("/:videoId", videoController.streamVideo);
-}
 
 module.exports = router;

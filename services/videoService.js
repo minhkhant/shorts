@@ -4,6 +4,32 @@ const { getVideoList } = require("../utils/fileUtils");
 const config = require("../config");
 
 /**
+ * Get latest video with basic info
+ */
+function getLatestVideo() {
+  const videoList = getVideoList();
+
+  if (videoList.length === 0) {
+    return null; // No videos available
+  }
+
+  // Sort videos by modification time (newest first)
+  const sortedVideos = videoList
+    .map((filename) => {
+      const filePath = path.join(config.videoDir, filename);
+      const stats = fs.statSync(filePath);
+      return {
+        filename,
+        mtime: stats.mtime,
+      };
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+
+  const latestVideo = sortedVideos[0].filename;
+  return getVideoWithPagination(latestVideo);
+}
+
+/**
  * Get all videos with basic info
  */
 function getAllVideos() {
@@ -21,8 +47,23 @@ function getAllVideos() {
 function getVideoWithPagination(videoId) {
   const videoList = getVideoList();
 
-  // Find the requested video's index
-  const currentIndex = videoList.findIndex((video) => video === videoId);
+  // Sort videos by modification time (newest first)
+  const sortedVideos = videoList
+    .map((filename) => {
+      const filePath = path.join(config.videoDir, filename);
+      const stats = fs.statSync(filePath);
+      return {
+        filename,
+        mtime: stats.mtime,
+      };
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+
+  // Map back to just filenames
+  const sortedFilenames = sortedVideos.map((v) => v.filename);
+
+  // Find the requested video's index in the sorted list
+  const currentIndex = sortedFilenames.findIndex((video) => video === videoId);
 
   if (currentIndex === -1) {
     throw new Error("Video not found");
@@ -36,19 +77,23 @@ function getVideoWithPagination(videoId) {
       url: `/videos/${videoId}`,
     },
     pagination: {
-      total: videoList.length,
+      total: sortedFilenames.length,
       current: currentIndex + 1,
     },
   };
 
   // Add previous video if available
   if (currentIndex > 0) {
-    response.pagination.previous = `/api/videos/${videoList[currentIndex - 1]}`;
+    response.pagination.previous = `/api/videos/${
+      sortedFilenames[currentIndex - 1]
+    }`;
   }
 
   // Add next video if available
-  if (currentIndex < videoList.length - 1) {
-    response.pagination.next = `/api/videos/${videoList[currentIndex + 1]}`;
+  if (currentIndex < sortedFilenames.length - 1) {
+    response.pagination.next = `/api/videos/${
+      sortedFilenames[currentIndex + 1]
+    }`;
   }
 
   return response;
@@ -91,6 +136,7 @@ function getVideoStreamInfo(videoId, range) {
 }
 
 module.exports = {
+  getLatestVideo,
   getAllVideos,
   getVideoWithPagination,
   getVideoStreamInfo,
