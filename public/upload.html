@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .progress {
+      height: 20px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      margin-top: 10px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: #4CAF50;
+      text-align: center;
+      color: white;
+      line-height: 20px;
+      width: 0%;
+    }
+    .btn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn:disabled {
+      background-color: #cccccc;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background-color: #dff0d8;
+      color: #3c763d;
+    }
+    .error {
+      background-color: #f2dede;
+      color: #a94442;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload Video</h1>
+  <form id="uploadForm">
+    <div class="form-group">
+      <label for="videoFile">Select MP4 Video File:</label>
+      <input type="file" id="videoFile" name="video" accept="video/mp4" required>
+    </div>
+    <div class="progress">
+      <div class="progress-bar" id="progressBar">0%</div>
+    </div>
+    <button type="submit" class="btn" id="uploadBtn">Upload Video</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const fileInput = document.getElementById('videoFile');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const progressBar = document.getElementById('progressBar');
+      const progress = document.querySelector('.progress');
+      const result = document.getElementById('result');
+      
+      if (!fileInput.files[0]) {
+        showResult('Please select a video file.', 'error');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('video', fileInput.files[0]);
+      
+      // Reset UI
+      result.style.display = 'none';
+      progress.style.display = 'block';
+      uploadBtn.disabled = true;
+      
+      const xhr = new XMLHttpRequest();
+      
+      xhr.open('POST', '/api/videos/upload', true);
+      
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const percentComplete = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = percentComplete + '%';
+          progressBar.textContent = percentComplete + '%';
+        }
+      };
+      
+      xhr.onload = function() {
+        if (xhr.status === 201) {
+          const response = JSON.parse(xhr.responseText);
+          showResult('Video uploaded successfully: ' + response.video.filename, 'success');
+        } else {
+          let errorMsg = 'Upload failed';
+          try {
+            const response = JSON.parse(xhr.responseText);
+            errorMsg = response.error || errorMsg;
+          } catch (e) {}
+          showResult(errorMsg, 'error');
+        }
+        uploadBtn.disabled = false;
+      };
+      
+      xhr.onerror = function() {
+        showResult('Upload failed. Please check your connection.', 'error');
+        uploadBtn.disabled = false;
+      };
+      
+      xhr.send(formData);
+    });
+    
+    function showResult(message, type) {
+      const result = document.getElementById('result');
+      result.textContent = message;
+      result.className = type;
+      result.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
